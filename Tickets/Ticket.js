@@ -9,6 +9,12 @@ const {
 } = require("discord.js");
 const { getBotMember, getMissingPermissions, EMBED_PERMISSIONS } = require("../utils/discord");
 
+// Custom IDs de los botones de gestión
+const BTN_TAKE    = "ticket-action:take";
+const BTN_RELEASE = "ticket-action:release";
+const BTN_CLOSE   = "ticket-action:close";
+const BTN_DELETE  = "ticket-action:delete";
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("ticket-panel")
@@ -22,9 +28,9 @@ module.exports = {
         .setRequired(false)
     ),
 
-  // Dispatcher dinámico: prefijo "ticket:" captura todos los botones del panel
   buttonHandlers: {
-    "ticket:": handleTicketButton,
+    "ticket:":        handleTicketButton,   // Crear ticket desde el panel
+    "ticket-action:": handleTicketAction,   // Tomar / Liberar / Cerrar / Eliminar
   },
 
   async execute(interaction, config) {
@@ -65,6 +71,8 @@ module.exports = {
   },
 };
 
+// ─── Crear ticket ────────────────────────────────────────────────────────────
+
 async function handleTicketButton(interaction, config) {
   await interaction.deferReply({ ephemeral: true });
 
@@ -93,28 +101,169 @@ async function handleTicketButton(interaction, config) {
   const channelName = normalizeChannelName(`ticket-${ticketType.id}-${interaction.user.username}`);
   const categoryId = await getValidCategoryId(interaction, config);
 
-  const channelOptions = {
+  const channel = await interaction.guild.channels.create({
     name: channelName,
     type: ChannelType.GuildText,
     topic: `ticket-owner:${interaction.user.id}`,
     permissionOverwrites,
     ...(categoryId && { parent: categoryId }),
-  };
-
-  const channel = await interaction.guild.channels.create(channelOptions);
+  });
 
   const embed = new EmbedBuilder()
     .setColor(config.colors.tickets)
     .setTitle(`${ticketType.emoji || ""} Ticket creado`.trim())
-    .setDescription(`${interaction.user}, gracias por abrir un ticket. El equipo autorizado te responderá pronto.`)
+    .setDescription(`${interaction.user}, gracias por abrir un ticket. El equipo te responderá pronto.`)
     .addFields(
       { name: "Tipo", value: ticketType.label, inline: true },
-      { name: "Usuario", value: `${interaction.user}`, inline: true }
+      { name: "Usuario", value: `${interaction.user}`, inline: true },
+      { name: "Estado", value: "🟡 Sin atender", inline: true }
     )
     .setTimestamp();
 
-  await channel.send({ content: `${interaction.user}`, embeds: [embed] });
+  await channel.send({
+    content: `${interaction.user}`,
+    embeds: [embed],
+    components: [buildActionRow(false)],  // false = no tomado aún
+  });
+
   await interaction.editReply(`Ticket creado: ${channel}.`);
+}
+
+// ─── Gestión del ticket (Tomar / Liberar / Cerrar / Eliminar) ─────────────────
+
+async function handleTicketAction(interaction, config) {
+  const action = interaction.customId.replace("ticket-action:", "");
+  const channel = interaction.channel;
+
+  // Verificar que quien actúa es staff (tiene rol autorizado)
+  const isStaff = isAuthorizedStaff(interaction, config);
+  if (!isStaff) {
+    return interaction.reply({ content: "No tenés permisos para gestionar tickets.", ephemeral: true });
+  }
+
+  if (action === "take") {
+    await handleTake(interaction, channel);
+  } else if (action === "release") {
+    await handleRelease(interaction, channel);
+  } else if (action === "close") {
+    await handleClose(interaction, channel);
+  } else if (action === "delete") {
+    await handleDelete(interaction, channel);
+  }
+}
+
+async function handleTake(interaction, channel) {
+  await interaction.deferUpdate();
+
+  // Renombrar canal agregando el username del staff
+  const baseName = channel.name.replace(/-[^-]+$/, ""); // quita sufijo anterior si existe
+  const newName = normalizeChannelName(`${baseName}-${interaction.user.username}`);
+
+  await channel.setName(newName, `Tomado por ${interaction.user.tag}`);
+
+  // Actualizar el embed original con el nuevo estado
+  const originalMessage = interaction.message;
+  const updatedEmbed = EmbedBuilder.from(originalMessage.embeds[0])
+    .spliceFields(2, 1, { name: "Estado", value: `🟢 Atendido por ${interaction.user}`, inline: true });
+
+  await originalMessage.edit({
+    embeds: [updatedEmbed],
+    components: [buildActionRow(true, interaction.user.id)], // true = tomado
+  });
+
+  await channel.send(`✅ ${interaction.user} tomó el ticket.`);
+}
+
+async function handleRelease(interaction, channel) {
+  await interaction.deferUpdate();
+
+  // Restaurar nombre sin el sufijo del staff
+  const newName = normalizeChannelName(channel.name.replace(/-[^-]+$/, ""));
+  await channel.setName(newName, `Liberado por ${interaction.user.tag}`);
+
+  const originalMessage = interaction.message;
+  const updatedEmbed = EmbedBuilder.from(originalMessage.embeds[0])
+    .spliceFields(2, 1, { name: "Estado", value: "🟡 Sin atender", inline: true });
+
+  await originalMessage.edit({
+    embeds: [updatedEmbed],
+    components: [buildActionRow(false)],
+  });
+
+  await channel.send(`🔄 ${interaction.user} liberó el ticket.`);
+}
+
+async function handleClose(interaction, channel) {
+  await interaction.deferUpdate();
+
+  // Obtener el ID del dueño del ticket desde el topic
+  const ownerId = channel.topic?.replace("ticket-owner:", "");
+
+  // Bloquear al usuario dueño del ticket
+  if (ownerId) {
+    await channel.permissionOverwrites.edit(ownerId, {
+      [PermissionFlagsBits.SendMessages]: false,
+    }).catch(() => null);
+  }
+
+  const originalMessage = interaction.message;
+  const updatedEmbed = EmbedBuilder.from(originalMessage.embeds[0])
+    .setColor(0x95a5a6)
+    .spliceFields(2, 1, { name: "Estado", value: "🔴 Cerrado", inline: true });
+
+  // Al cerrar solo queda el botón eliminar
+  const closeRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(BTN_DELETE)
+      .setLabel("Eliminar")
+      .setEmoji("🗑️")
+      .setStyle(ButtonStyle.Danger)
+  );
+
+  await originalMessage.edit({ embeds: [updatedEmbed], components: [closeRow] });
+  await channel.send(`🔒 Ticket cerrado por ${interaction.user}. Solo el staff puede eliminarlo.`);
+}
+
+async function handleDelete(interaction, channel) {
+  await interaction.reply({ content: "Eliminando canal en 3 segundos...", ephemeral: true });
+  await sleep(3000);
+  await channel.delete(`Eliminado por ${interaction.user.tag}`).catch(() => null);
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Construye la fila de botones de gestión del ticket.
+ * @param {boolean} taken - si el ticket ya fue tomado
+ * @param {string} [takenById] - ID del staff que lo tomó (no usado actualmente, reservado)
+ */
+function buildActionRow(taken, takenById) {
+  const row = new ActionRowBuilder();
+
+  if (taken) {
+    row.addComponents(
+      new ButtonBuilder().setCustomId(BTN_RELEASE).setLabel("Liberar").setEmoji("🔄").setStyle(ButtonStyle.Secondary)
+    );
+  } else {
+    row.addComponents(
+      new ButtonBuilder().setCustomId(BTN_TAKE).setLabel("Tomar").setEmoji("✋").setStyle(ButtonStyle.Success)
+    );
+  }
+
+  row.addComponents(
+    new ButtonBuilder().setCustomId(BTN_CLOSE).setLabel("Cerrar").setEmoji("🔒").setStyle(ButtonStyle.Secondary),
+    new ButtonBuilder().setCustomId(BTN_DELETE).setLabel("Eliminar").setEmoji("🗑️").setStyle(ButtonStyle.Danger)
+  );
+
+  return row;
+}
+
+function isAuthorizedStaff(interaction, config) {
+  const authorizedRoles = config.tickets.authorizedRoleIds.filter((id) => id && !id.startsWith("ID_"));
+  if (authorizedRoles.length === 0) {
+    return interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels) ?? false;
+  }
+  return interaction.member.roles.cache.some((role) => authorizedRoles.includes(role.id));
 }
 
 function buildPermissionOverwrites(interaction, config) {
@@ -179,4 +328,8 @@ function normalizeChannelName(value) {
     .replace(/[^a-z0-9-]/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 90);
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
