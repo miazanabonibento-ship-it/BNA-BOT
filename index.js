@@ -5,11 +5,11 @@ const {
   Collection,
   Events,
   GatewayIntentBits,
-  REST,
-  Routes
 } = require("discord.js");
 
 const config = require("./config");
+const { getFriendlyErrorMessage } = require("./utils/discord");
+
 const announcementCommand = require("./General Messages/Announcement");
 const blacklistCommand = require("./Blacklist/Blacklist");
 const nicknameCommand = require("./Nicknames/Nickname");
@@ -20,17 +20,23 @@ const welcomeEvent = require("./Welcome - Goodbye/Welcome");
 const goodbyeEvent = require("./Welcome - Goodbye/GoodBye");
 const testCardCommands = require("./Welcome - Goodbye/TestCards");
 
-// Inicializa el cliente de Discord.js con los intents necesarios
+if (!process.env.DISCORD_TOKEN) {
+  throw new Error("Falta DISCORD_TOKEN en el archivo .env.");
+}
+
+// --- Cliente ---
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
-  ]
+    GatewayIntentBits.GuildMembers,
+  ],
 });
+
+// --- Registro de comandos ---
 
 client.commands = new Collection();
 
-// Cargar todos los comandos
 const commands = [
   announcementCommand,
   blacklistCommand,
@@ -38,159 +44,112 @@ const commands = [
   recognitionCommand,
   strikeCommand,
   ticketCommand,
-  ...testCardCommands
+  // Los comandos de prueba solo se cargan fuera de producción
+  ...(process.env.NODE_ENV !== "production" ? testCardCommands : []),
 ];
 
 for (const command of commands) {
-  if (!command.data || !command.data.name) {
-    console.warn("⚠️ Un comando no tiene estructura valida", command);
-    continue;
-  }
   client.commands.set(command.data.name, command);
-  console.log(`✅ Comando cargado: ${command.data.name}`);
 }
 
-// Evento cuando el bot está listo
-client.once(Events.ClientReady, async (readyClient) => {
-  console.log(`\n✅ Bot conectado como ${readyClient.user.tag}`);
-  console.log(`📊 Servidores: ${readyClient.guilds.cache.size}`);
-  try {
-    await registerCommands();
-  } catch (error) {
-    console.error("❌ Error registrando comandos:", error);
+// --- Registro de handlers de interacciones personalizadas ---
+// Cada módulo puede exponer `buttonHandlers` y `modalHandlers`:
+// un objeto { [customIdPrefix]: handlerFn(interaction, config) }
+
+const interactionModules = [ticketCommand, nicknameCommand];
+
+const buttonHandlers = new Map();
+const modalHandlers = new Map();
+
+for (const mod of interactionModules) {
+  if (mod.buttonHandlers) {
+    for (const [prefix, handler] of Object.entries(mod.buttonHandlers)) {
+      buttonHandlers.set(prefix, handler);
+    }
   }
+  if (mod.modalHandlers) {
+    for (const [prefix, handler] of Object.entries(mod.modalHandlers)) {
+      modalHandlers.set(prefix, handler);
+    }
+  }
+}
+
+// --- Evento: ready ---
+
+client.once(Events.ClientReady, (readyClient) => {
+  console.log(`✅ Bot conectado como ${readyClient.user.tag}`);
+  console.log(`📦 ${client.commands.size} comandos cargados.`);
 });
 
-// Maneja todas las interacciones (comandos, botones, modales)
+// --- Evento: interacciones ---
+
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
-    const interactionType = interaction.isChatInputCommand() 
-      ? `Comando: ${interaction.commandName}`
-      : interaction.isButton()
-      ? `Botón: ${interaction.customId}`
-      : interaction.isModalSubmit()
-      ? `Modal: ${interaction.customId}`
-      : "Desconocida";
-
-    console.log(`📨 Interacción: ${interaction.user.tag} → ${interactionType}`);
-
     if (interaction.isChatInputCommand()) {
       const command = client.commands.get(interaction.commandName);
-      if (!command) {
-        console.warn(`⚠️ Comando no encontrado: ${interaction.commandName}`);
-        return;
-      }
-
+      if (!command) return;
       await command.execute(interaction, config);
       return;
     }
 
-    if (interaction.isButton() && interaction.customId.startsWith("ticket:")) {
-      await ticketCommand.handleButton(interaction, config);
+    if (interaction.isButton()) {
+      const handler = resolveHandler(buttonHandlers, interaction.customId);
+      if (handler) await handler(interaction, config);
       return;
     }
 
-    // Manejo de acciones dentro del ticket (cerrar, eliminar, tomar)
-    if (interaction.isButton() && (
-      interaction.customId.startsWith("ticket-claim:") ||
-      interaction.customId.startsWith("ticket-close:") ||
-      interaction.customId.startsWith("ticket-delete:")
-    )) {
-      await ticketCommand.handleTicketAction(interaction, config);
+    if (interaction.isModalSubmit()) {
+      const handler = resolveHandler(modalHandlers, interaction.customId);
+      if (handler) await handler(interaction, config);
       return;
-    }
-
-    if (interaction.isButton() && interaction.customId === nicknameCommand.customIds.openModal) {
-      await nicknameCommand.handleButton(interaction, config);
-      return;
-    }
-
-    if (interaction.isModalSubmit() && interaction.customId === nicknameCommand.customIds.submitModal) {
-      await nicknameCommand.handleModal(interaction, config);
     }
   } catch (error) {
-    console.error(`❌ Error procesando interacción de ${interaction.user.tag}:`, error);
-
-    const response = {
-      content: getFriendlyErrorMessage(error),
-      ephemeral: true
-    };
-
-    try {
-      if (interaction.deferred || interaction.replied) {
-        await interaction.followUp(response);
-      } else {
-        await interaction.reply(response);
-      }
-    } catch (replyError) {
-      console.error("❌ Error enviando respuesta de error:", replyError);
-    }
+    console.error(`[InteractionCreate] ${error}`);
+    await replyWithError(interaction, getFriendlyErrorMessage(error));
   }
 });
 
-// Evento de bienvenida cuando un miembro se une
+// --- Eventos: bienvenida y baja ---
+
 client.on(welcomeEvent.name, (member) => {
-  console.log(`👋 Bienvenida: ${member.user.tag} se unió a ${member.guild.name}`);
-  welcomeEvent.execute(member, config).catch((error) => {
-    console.error(`❌ Error en evento de bienvenida (${member.user.tag}):`, error);
-  });
+  welcomeEvent.execute(member, config).catch(console.error);
 });
 
-// Evento de despedida cuando un miembro se va
 client.on(goodbyeEvent.name, (member) => {
-  console.log(`👋 Despedida: ${member.user.tag} abandonó ${member.guild.name}`);
-  goodbyeEvent.execute(member, config).catch((error) => {
-    console.error(`❌ Error en evento de despedida (${member.user.tag}):`, error);
-  });
+  goodbyeEvent.execute(member, config).catch(console.error);
 });
 
-// Registra todos los comandos slash en Discord
-async function registerCommands() {
-  const token = process.env.DISCORD_TOKEN;
-  const clientId = process.env.CLIENT_ID;
-  const guildId = process.env.GUILD_ID;
+// --- Helpers ---
 
-  if (!token || !clientId || !guildId) {
-    console.warn("⚠️ Faltan variables: DISCORD_TOKEN, CLIENT_ID o GUILD_ID");
-    return;
+/**
+ * Busca un handler cuya clave sea prefijo del customId recibido.
+ * Permite tanto matches exactos como "ticket:" → "ticket:solicitar-baja".
+ * @param {Map<string, Function>} handlers
+ * @param {string} customId
+ * @returns {Function | undefined}
+ */
+function resolveHandler(handlers, customId) {
+  for (const [prefix, handler] of handlers) {
+    if (customId === prefix || customId.startsWith(prefix)) {
+      return handler;
+    }
   }
+  return undefined;
+}
 
+async function replyWithError(interaction, message) {
+  const payload = { content: message, ephemeral: true };
   try {
-    const rest = new REST({ version: "10" }).setToken(token);
-    const commandPayload = commands.map((command) => command.data.toJSON());
-
-    console.log(`📝 Registrando ${commandPayload.length} comandos...`);
-    
-    await rest.put(
-      Routes.applicationGuildCommands(clientId, guildId),
-      { body: commandPayload }
-    );
-
-    console.log(`✅ ${commandPayload.length} comandos registrados exitosamente`);
-  } catch (error) {
-    console.error("❌ Error registrando comandos:", error.message);
-    throw error;
+    if (interaction.deferred || interaction.replied) {
+      await interaction.followUp(payload);
+    } else {
+      await interaction.reply(payload);
+    }
+  } catch {
+    // La interacción puede haber expirado; ignorar silenciosamente.
   }
 }
 
-// Conecta el bot con manejo de errores
-if (!process.env.DISCORD_TOKEN) {
-  throw new Error("❌ DISCORD_TOKEN no está configurado en .env");
-}
+// --- Login ---
 
-client.login(process.env.DISCORD_TOKEN).catch((error) => {
-  console.error("❌ Error al conectar el bot:", error.message);
-  process.exit(1);
-});
-
-// Convierte códigos de error de Discord en mensajes amigables
-function getFriendlyErrorMessage(error) {
-  const errorMessages = {
-    50001: "No tengo acceso a ese canal. Revisame permisos de Ver canal, Enviar mensajes e Insertar enlaces.",
-    50013: "Me faltan permisos para hacer esa acción. Revisame el rol del bot y los permisos del canal.",
-    50035: "Discord rechazó los datos enviados. Revisame IDs de canales/categorías/roles en config.js.",
-    50018: "El bot está inactivo o falta la autorización OAuth2."
-  };
-
-  return errorMessages[error?.code] || "Ocurrió un error ejecutando esta acción.";
-}
+client.login(process.env.DISCORD_TOKEN);
