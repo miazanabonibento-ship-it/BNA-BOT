@@ -1,0 +1,14 @@
+{
+  "name": "bot-gna",
+  "version": "1.0.0",
+  "description": "Bot modular de Discord para anuncios, sanciones, tickets, bienvenidas y bajas.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "jimp": "^0.22.12",
+    "discord.js": "^14.19.3",
+    "dotenv": "^16.5.0"
+  }
+}
