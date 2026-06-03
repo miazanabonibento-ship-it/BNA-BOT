@@ -4,12 +4,12 @@ const {
   ButtonStyle,
   ChannelType,
   EmbedBuilder,
+  MessageFlags,
   ModalBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
-  MessageFlags,
 } = require("discord.js");
 const { getBotMember } = require("../utils/discord");
 
@@ -30,7 +30,6 @@ module.exports = {
         .setRequired(false)
     ),
 
-  // Dispatcher dinámico
   buttonHandlers: {
     [OPEN_MODAL_ID]: handleOpenModal,
   },
@@ -80,7 +79,7 @@ async function handleOpenModal(interaction) {
   await interaction.showModal(modal);
 }
 
-async function handleModalSubmit(interaction) {
+async function handleModalSubmit(interaction, config) {
   const nickname = interaction.fields.getTextInputValue(INPUT_ID).trim();
 
   if (!nickname) {
@@ -104,5 +103,53 @@ async function handleModalSubmit(interaction) {
   }
 
   await interaction.member.setNickname(nickname, `Cambio solicitado por ${interaction.user.tag}`);
-  await interaction.reply({ content: `Listo, tu apodo ahora es **${nickname}**.`, flags: MessageFlags.Ephemeral });
+
+  // Asignar roles configurados
+  const roleResults = await updateRoles(interaction.member, botMember, config.nicknames);
+
+  const lines = [`Listo, tu apodo ahora es **${nickname}**.`, ...roleResults].filter(Boolean);
+  await interaction.reply({ content: lines.join("\n"), flags: MessageFlags.Ephemeral });
+}
+
+/**
+ * Asigna promotedRoleIds y remueve removedRoleId según la config de nicknames.
+ * Retorna un array de strings con el resultado de cada operación (para mostrar al usuario).
+ */
+async function updateRoles(member, botMember, nicknamesConfig) {
+  const results = [];
+
+  // Asignar roles
+  const promotedRoleIds = (nicknamesConfig.promotedRoleIds ?? []).filter((id) => id && !id.startsWith("ID_"));
+  for (const roleId of promotedRoleIds) {
+    const role = await member.guild.roles.fetch(roleId).catch(() => null);
+    if (!role) continue;
+
+    if (member.roles.cache.has(role.id)) continue; // ya lo tiene, no hacer nada
+
+    if (botMember.roles.highest.comparePositionTo(role) <= 0) {
+      console.warn(`No pude asignar ${role.name}: mi rol está por debajo.`);
+      continue;
+    }
+
+    await member.roles.add(role, "Asignado al cambiar apodo").catch((err) => {
+      console.warn(`No pude asignar ${role.name}: ${err.message}`);
+    });
+  }
+
+  // Remover rol
+  const removedRoleId = nicknamesConfig.removedRoleId;
+  if (removedRoleId && !removedRoleId.startsWith("ID_")) {
+    const role = await member.guild.roles.fetch(removedRoleId).catch(() => null);
+    if (role && member.roles.cache.has(role.id)) {
+      if (botMember.roles.highest.comparePositionTo(role) > 0) {
+        await member.roles.remove(role, "Removido al cambiar apodo").catch((err) => {
+          console.warn(`No pude remover ${role.name}: ${err.message}`);
+        });
+      } else {
+        console.warn(`No pude remover ${role.name}: mi rol está por debajo.`);
+      }
+    }
+  }
+
+  return results;
 }

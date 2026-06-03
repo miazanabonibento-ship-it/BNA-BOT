@@ -10,23 +10,17 @@ module.exports = {
   },
 
   announcements: {
-    // Si dejas esta lista vacia, se exige el permiso de Discord "Gestionar mensajes".
-    // Si pones IDs, solo esos roles pueden usar /anuncio.
+    // Si dejás esta lista vacía, se exige el permiso de Discord "Gestionar mensajes".
+    // Si ponés IDs, solo esos roles pueden usar /anuncio.
     allowedCommandRoleIds: [
       // "1509659763468926986"
     ],
 
     // Roles que se pueden mencionar con /anuncio.
-    // Si dejas esta lista vacia, se permite mencionar cualquier rol.
-    mentionableRoleIds: [
-      // "1509659763393302577",
-      // "1509659763393302576",
-      // "1509659763393302575",
-      // "11509659763393302574",
-      // "1509659763393302574",
-    ],
+    // Si dejás esta lista vacía, se permite mencionar cualquier rol.
+    mentionableRoleIds: [],
 
-    // Cambia a true si queres permitir @everyone desde /anuncio.
+    // Cambiá a true si querés permitir @everyone desde /anuncio.
     allowEveryoneMention: true
   },
 
@@ -43,54 +37,37 @@ module.exports = {
       "1509659763468926986"
     ],
     panelTitle: "Crear ticket",
-    panelDescription: "Selecciona una opcion para abrir un ticket. Cuando un miembro superior este disponible te atendera lo antes posible.",
+    panelDescription: "Selecciona una opción para abrir un ticket. Cuando un miembro superior esté disponible te atenderá lo antes posible.",
     buttons: [
-      {
-        id: "solicitar-baja",
-        label: "Solicitar Baja",
-        emoji: "\uD83C\uDFAB",
-        style: "Primary"
-      },
-      {
-        id: "solicitar-ascenso",
-        label: "Solicitar Ascenso",
-        emoji: "\uD83D\uDCC8",
-        style: "Primary"
-      },
-      {
-        id: "reporte",
-        label: "Reporte",
-        emoji: "\u26A0\uFE0F",
-        style: "Danger"
-      },
-      {
-        id: "duda",
-        label: "Duda",
-        emoji: "\u2753",
-        style: "Secondary"
-      }
+      { id: "solicitar-baja",    label: "Solicitar Baja",    emoji: "🎫", style: "Primary"   },
+      { id: "solicitar-ascenso", label: "Solicitar Ascenso", emoji: "📈", style: "Primary"   },
+      { id: "reporte",           label: "Reporte",           emoji: "⚠️", style: "Danger"    },
+      { id: "duda",              label: "Duda",              emoji: "❓", style: "Secondary" }
     ]
   },
 
   strikes: {
     roleIds: {
       1: "1509659763275989105",
-      2: "1509669600973820104",
+      2: "1509669600973820104"
     }
   },
 
   nicknames: {
     panelTitle: "Cambiar apodo",
-    panelDescription: "Toca el boton de abajo para escribir tu nombre IC dentro del servidor.",
+    panelDescription: "Tocá el botón de abajo para escribir tu nombre IC dentro del servidor.",
     button: {
       label: "Cambiar apodo",
-      emoji: "\u270F\uFE0F",
+      emoji: "✏️",
       style: "Primary"
     },
-    // Rol que se asigna automáticamente cuando cambias tu apodo
-    promotedRoleId: "1510552250294997022", // Rol de "Cabo"
-    // Rol que se remueve cuando cambias tu apodo (opcional)
-    removedRoleId: "1509659763275989110" // Rol de "Civil" (opcional, déjalo en null si no quieres remover)
+    // Roles que se asignan al cambiar el apodo (se asignan todos los que estén en la lista)
+    promotedRoleIds: [
+      "1510552250294997022",
+      "1511504268384014476"  // Rol de "Cabo"
+    ],
+    // Rol que se remueve al cambiar el apodo. null = no remover ninguno.
+    removedRoleId: "1509659763275989110"  // Rol de "Civil"
   },
 
   welcome: {
@@ -107,7 +84,7 @@ module.exports = {
   goodbye: {
     imageUrl: "https://media.discordapp.net/attachments/1509254186678882305/1509727904999674006/malvinas.jpg?ex=6a1a3b2d&is=6a18e9ad&hm=e02670709c460ce9ce6fb09fe05c37b24175516993e5c4114086b2fbc6c9642c&=&format=webp",
     title: "Baja",
-    description: "**{userTag}** salio de **{server}**.",
+    description: "**{userTag}** salió de **{server}**.",
     card: {
       backgroundImage: "https://media.discordapp.net/attachments/1509254186678882305/1509727904999674006/malvinas.jpg?ex=6a1a3b2d&is=6a18e9ad&hm=e02670709c460ce9ce6fb09fe05c37b24175516993e5c4114086b2fbc6c9642c&=&format=webp",
       serverLabel: "GNA"
