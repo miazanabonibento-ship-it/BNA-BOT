@@ -1,4 +1,6 @@
-const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
+const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder,
+  MessageFlags,
+} = require("discord.js");
 const { getConfiguredChannel, getBotMember } = require("../utils/discord");
 
 module.exports = {
@@ -40,7 +42,7 @@ module.exports = {
     ),
 
   async execute(interaction, config) {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
     const user = interaction.options.getUser("usuario", true);
     const reason = interaction.options.getString("razon", true);

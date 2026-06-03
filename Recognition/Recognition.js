@@ -1,4 +1,6 @@
-const { ChannelType, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
+const { ChannelType, PermissionFlagsBits, SlashCommandBuilder,
+  MessageFlags,
+} = require("discord.js");
 const { getBotMember, getMissingPermissions, MESSAGE_PERMISSIONS } = require("../utils/discord");
 
 module.exports = {
@@ -51,7 +53,7 @@ module.exports = {
     const date = interaction.options.getString("fecha") ?? getTodayDate();
 
     if (!targetChannel?.isTextBased()) {
-      return interaction.reply({ content: "Ese canal no sirve para enviar reconocimientos.", ephemeral: true });
+      return interaction.reply({ content: "Ese canal no sirve para enviar reconocimientos.", flags: MessageFlags.Ephemeral });
     }
 
     const botMember = await getBotMember(interaction.guild);
@@ -60,7 +62,7 @@ module.exports = {
     if (missing.length > 0) {
       return interaction.reply({
         content: `No puedo mandar el reconocimiento en ${targetChannel}. Me faltan: ${missing.join(", ")}.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -81,7 +83,7 @@ module.exports = {
       await message.react(reaction);
     }
 
-    await interaction.reply({ content: `Reconocimiento enviado en ${targetChannel}.`, ephemeral: true });
+    await interaction.reply({ content: `Reconocimiento enviado en ${targetChannel}.`, flags: MessageFlags.Ephemeral });
   },
 };
 

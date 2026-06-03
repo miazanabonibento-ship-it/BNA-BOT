@@ -5,6 +5,7 @@ const {
   Collection,
   Events,
   GatewayIntentBits,
+  MessageFlags,
 } = require("discord.js");
 
 const config = require("./config");
@@ -138,7 +139,7 @@ function resolveHandler(handlers, customId) {
 }
 
 async function replyWithError(interaction, message) {
-  const payload = { content: message, ephemeral: true };
+  const payload = { content: message, flags: MessageFlags.Ephemeral };
   try {
     if (interaction.deferred || interaction.replied) {
       await interaction.followUp(payload);

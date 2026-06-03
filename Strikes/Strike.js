@@ -1,4 +1,6 @@
-const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder } = require("discord.js");
+const { EmbedBuilder, PermissionFlagsBits, SlashCommandBuilder,
+  MessageFlags,
+} = require("discord.js");
 const { getConfiguredChannel, getBotMember, tryAddRole } = require("../utils/discord");
 
 module.exports = {
@@ -63,7 +65,7 @@ module.exports = {
 
     const logChannel = await getConfiguredChannel(interaction.guild, config.channels.sanctionsLog);
     await (logChannel ?? interaction.channel).send({ embeds: [embed] });
-    await interaction.reply({ content: `Sanción registrada para ${user}. ${roleResult}`, ephemeral: true });
+    await interaction.reply({ content: `Sanción registrada para ${user}. ${roleResult}`, flags: MessageFlags.Ephemeral });
   },
 };
 

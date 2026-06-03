@@ -6,6 +6,7 @@ const {
   EmbedBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  MessageFlags,
 } = require("discord.js");
 const { getBotMember, getMissingPermissions, EMBED_PERMISSIONS } = require("../utils/discord");
 
@@ -37,7 +38,7 @@ module.exports = {
     const targetChannel = interaction.options.getChannel("canal") ?? interaction.channel;
 
     if (!targetChannel?.isTextBased()) {
-      return interaction.reply({ content: "Ese canal no sirve para enviar el panel de tickets.", ephemeral: true });
+      return interaction.reply({ content: "Ese canal no sirve para enviar el panel de tickets.", flags: MessageFlags.Ephemeral });
     }
 
     const botMember = await getBotMember(interaction.guild);
@@ -46,7 +47,7 @@ module.exports = {
     if (missing.length > 0) {
       return interaction.reply({
         content: `No puedo mandar el panel en ${targetChannel}. Me faltan: ${missing.join(", ")}.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -67,14 +68,14 @@ module.exports = {
     );
 
     await targetChannel.send({ embeds: [embed], components: [row] });
-    await interaction.reply({ content: `Panel de tickets enviado en ${targetChannel}.`, ephemeral: true });
+    await interaction.reply({ content: `Panel de tickets enviado en ${targetChannel}.`, flags: MessageFlags.Ephemeral });
   },
 };
 
 // ─── Crear ticket ────────────────────────────────────────────────────────────
 
 async function handleTicketButton(interaction, config) {
-  await interaction.deferReply({ ephemeral: true });
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
   const ticketTypeId = interaction.customId.replace("ticket:", "");
   const ticketType = config.tickets.buttons.find((b) => b.id === ticketTypeId);
@@ -138,7 +139,7 @@ async function handleTicketAction(interaction, config) {
   // Verificar que quien actúa es staff (tiene rol autorizado)
   const isStaff = isAuthorizedStaff(interaction, config);
   if (!isStaff) {
-    return interaction.reply({ content: "No tenés permisos para gestionar tickets.", ephemeral: true });
+    return interaction.reply({ content: "No tenés permisos para gestionar tickets.", flags: MessageFlags.Ephemeral });
   }
 
   if (action === "take") {
@@ -225,7 +226,7 @@ async function handleClose(interaction, channel) {
 }
 
 async function handleDelete(interaction, channel) {
-  await interaction.reply({ content: "Eliminando canal en 3 segundos...", ephemeral: true });
+  await interaction.reply({ content: "Eliminando canal en 3 segundos...", flags: MessageFlags.Ephemeral });
   await sleep(3000);
   await channel.delete(`Eliminado por ${interaction.user.tag}`).catch(() => null);
 }

@@ -9,6 +9,7 @@ const {
   SlashCommandBuilder,
   TextInputBuilder,
   TextInputStyle,
+  MessageFlags,
 } = require("discord.js");
 const { getBotMember } = require("../utils/discord");
 
@@ -41,7 +42,7 @@ module.exports = {
     const targetChannel = interaction.options.getChannel("canal") ?? interaction.channel;
 
     if (!targetChannel?.isTextBased()) {
-      return interaction.reply({ content: "Ese canal no sirve para enviar el panel de apodos.", ephemeral: true });
+      return interaction.reply({ content: "Ese canal no sirve para enviar el panel de apodos.", flags: MessageFlags.Ephemeral });
     }
 
     const embed = new EmbedBuilder()
@@ -59,7 +60,7 @@ module.exports = {
     );
 
     await targetChannel.send({ embeds: [embed], components: [row] });
-    await interaction.reply({ content: `Panel de apodos enviado en ${targetChannel}.`, ephemeral: true });
+    await interaction.reply({ content: `Panel de apodos enviado en ${targetChannel}.`, flags: MessageFlags.Ephemeral });
   },
 };
 
@@ -83,7 +84,7 @@ async function handleModalSubmit(interaction) {
   const nickname = interaction.fields.getTextInputValue(INPUT_ID).trim();
 
   if (!nickname) {
-    return interaction.reply({ content: "El apodo no puede estar vacío.", ephemeral: true });
+    return interaction.reply({ content: "El apodo no puede estar vacío.", flags: MessageFlags.Ephemeral });
   }
 
   const botMember = await getBotMember(interaction.guild);
@@ -91,17 +92,17 @@ async function handleModalSubmit(interaction) {
   if (!botMember.permissions.has(PermissionFlagsBits.ManageNicknames)) {
     return interaction.reply({
       content: "No puedo cambiar apodos porque me falta el permiso Gestionar apodos.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 
   if (!interaction.member.manageable) {
     return interaction.reply({
       content: "No puedo cambiar tu apodo. Mi rol tiene que estar por encima del tuyo.",
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
   }
 
   await interaction.member.setNickname(nickname, `Cambio solicitado por ${interaction.user.tag}`);
-  await interaction.reply({ content: `Listo, tu apodo ahora es **${nickname}**.`, ephemeral: true });
+  await interaction.reply({ content: `Listo, tu apodo ahora es **${nickname}**.`, flags: MessageFlags.Ephemeral });
 }

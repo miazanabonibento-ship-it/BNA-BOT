@@ -6,6 +6,7 @@ const {
   EmbedBuilder,
   PermissionFlagsBits,
   SlashCommandBuilder,
+  MessageFlags,
 } = require("discord.js");
 const { getBotMember, getMissingPermissions, normalizeRoleIds } = require("../utils/discord");
 
@@ -79,32 +80,32 @@ module.exports = {
     // --- Validaciones ---
 
     if (!canUseAnnouncementCommand(interaction, config.announcements)) {
-      return interaction.reply({ content: "No tenés un rol autorizado para usar /anuncio.", ephemeral: true });
+      return interaction.reply({ content: "No tenés un rol autorizado para usar /anuncio.", flags: MessageFlags.Ephemeral });
     }
 
     if (mentionEveryone && !config.announcements?.allowEveryoneMention) {
-      return interaction.reply({ content: "La mención @everyone está desactivada en config.js para /anuncio.", ephemeral: true });
+      return interaction.reply({ content: "La mención @everyone está desactivada en config.js para /anuncio.", flags: MessageFlags.Ephemeral });
     }
 
     if (roleMention && !canMentionRole(roleMention.id, config.announcements)) {
       return interaction.reply({
         content: "Ese rol no está autorizado para mencionarse con /anuncio. Agregalo en config.js > announcements.mentionableRoleIds.",
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
     if ((buttonText && !buttonUrl) || (!buttonText && buttonUrl)) {
-      return interaction.reply({ content: "Para agregar botón tenés que completar boton_texto y boton_url.", ephemeral: true });
+      return interaction.reply({ content: "Para agregar botón tenés que completar boton_texto y boton_url.", flags: MessageFlags.Ephemeral });
     }
 
     for (const [value, label] of [[buttonUrl, "URL del botón"], [imageUrl, "imagen"], [thumbnailUrl, "miniatura"]]) {
       if (value && !isValidHttpUrl(value)) {
-        return interaction.reply({ content: `La ${label} tiene que ser una URL válida que empiece con http:// o https://.`, ephemeral: true });
+        return interaction.reply({ content: `La ${label} tiene que ser una URL válida que empiece con http:// o https://.`, flags: MessageFlags.Ephemeral });
       }
     }
 
     if (!targetChannel?.isTextBased()) {
-      return interaction.reply({ content: "Ese canal no sirve para enviar anuncios.", ephemeral: true });
+      return interaction.reply({ content: "Ese canal no sirve para enviar anuncios.", flags: MessageFlags.Ephemeral });
     }
 
     const botMember = await getBotMember(interaction.guild);
@@ -119,7 +120,7 @@ module.exports = {
     if (missing.length > 0) {
       return interaction.reply({
         content: `No puedo mandar el anuncio en ${targetChannel}. Me faltan: ${missing.join(", ")}.`,
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
 
@@ -158,7 +159,7 @@ module.exports = {
       await sentMessage.pin(`Anuncio fijado por ${interaction.user.tag}`);
     }
 
-    await interaction.reply({ content: `Anuncio enviado en ${targetChannel}.`, ephemeral: true });
+    await interaction.reply({ content: `Anuncio enviado en ${targetChannel}.`, flags: MessageFlags.Ephemeral });
   },
 };
 
