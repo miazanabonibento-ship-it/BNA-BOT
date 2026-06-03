@@ -46,7 +46,7 @@ const commands = [
   strikeCommand,
   ticketCommand,
   // Los comandos de prueba solo se cargan fuera de producción
-  ...(process.env.NODE_ENV !== "production" ? testCardCommands : []),
+  ...testCardCommands,
 ];
 
 for (const command of commands) {
