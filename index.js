@@ -1,4 +1,5 @@
 require("dotenv").config();
+const promoteCommand = require("./Promote/Promote");
 
 const {
   Client,
@@ -154,3 +155,15 @@ async function replyWithError(interaction, message) {
 // --- Login ---
 
 client.login(process.env.DISCORD_TOKEN);
+
+// En el array de commands
+const commands = [
+  announcementCommand,
+  blacklistCommand,
+  nicknameCommand,
+  recognitionCommand,
+  strikeCommand,
+  ticketCommand,
+  promoteCommand,  // ← agregá esto
+  ...testCardCommands,
+];
