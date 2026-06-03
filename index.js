@@ -1,5 +1,5 @@
 require("dotenv").config();
-const promoteCommand = require("./Promote/Promote");
+const promoteCommand = require("./Promote/promote");
 
 const {
   Client,
