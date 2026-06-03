@@ -16,7 +16,7 @@ module.exports = [
      */
     async execute(interaction, config) {
       try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         
         if (!config?.welcome || !config?.channels?.welcome) {
           await interaction.editReply("❌ El canal de bienvenida no está configurado.");
@@ -44,7 +44,7 @@ module.exports = [
      */
     async execute(interaction, config) {
       try {
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: 64 });
         
         if (!config?.goodbye || !config?.channels?.goodbye) {
           await interaction.editReply("❌ El canal de baja no está configurado.");
