@@ -10,17 +10,8 @@ module.exports = {
   },
 
   announcements: {
-    // Si dejás esta lista vacía, se exige el permiso de Discord "Gestionar mensajes".
-    // Si ponés IDs, solo esos roles pueden usar /anuncio.
-    allowedCommandRoleIds: [
-      // "1509659763468926986"
-    ],
-
-    // Roles que se pueden mencionar con /anuncio.
-    // Si dejás esta lista vacía, se permite mencionar cualquier rol.
+    allowedCommandRoleIds: [],
     mentionableRoleIds: [],
-
-    // Cambiá a true si querés permitir @everyone desde /anuncio.
     allowEveryoneMention: true
   },
 
@@ -37,7 +28,7 @@ module.exports = {
       "1509659763468926986"
     ],
     panelTitle: "Crear ticket",
-    panelDescription: "Selecciona una opción para abrir un ticket. Cuando un miembro superior esté disponible te atenderá lo antes posible.",
+    panelDescription: "Seleccioná una opción para abrir un ticket. Cuando un miembro superior esté disponible te atenderá lo antes posible.",
     buttons: [
       { id: "solicitar-baja",    label: "Solicitar Baja",    emoji: "🎫", style: "Primary"   },
       { id: "solicitar-ascenso", label: "Solicitar Ascenso", emoji: "📈", style: "Primary"   },
@@ -61,32 +52,29 @@ module.exports = {
       emoji: "✏️",
       style: "Primary"
     },
-    // Roles que se asignan al cambiar el apodo (se asignan todos los que estén en la lista)
+    // Roles que se asignan al cambiar el apodo
     promotedRoleIds: [
       "1510552250294997022",
-      "1511504268384014476"  // Rol de "Cabo"
+      "1511504268384014476"
     ],
     // Rol que se remueve al cambiar el apodo. null = no remover ninguno.
-    removedRoleId: "1509659763275989110"  // Rol de "Civil"
+    removedRoleId: "1509659763275989110"  // Civil
   },
 
   welcome: {
     autoRoleId: "1509659763275989110",
-    imageUrl: "https://media.discordapp.net/attachments/1509254186678882305/1509727905339670688/62466c6bba37f.jpg?ex=6a1a3b2e&is=6a18e9ae&hm=7e3a958a26eb4be8e3cd9df792c6b93702cdbdb2d9db241653e35eb5858b4f97&=&format=webp",
-    title: "Bienvenido/a",
-    description: "{user}, bienvenido/a a **{server}**.",
     card: {
-      backgroundImage: "https://media.discordapp.net/attachments/1509254186678882305/1509727905339670688/62466c6bba37f.jpg?ex=6a1a3b2e&is=6a18e9ae&hm=7e3a958a26eb4be8e3cd9df792c6b93702cdbdb2d9db241653e35eb5858b4f97&=&format=webp",
+      // Reemplazá esta URL con una imagen subida permanentemente (Imgur, etc.)
+      // Las URLs de Discord CDN expiran. Dejala vacía para usar el fondo por defecto.
+      backgroundImage: "",
       serverLabel: "GNA"
     }
   },
 
   goodbye: {
-    imageUrl: "https://media.discordapp.net/attachments/1509254186678882305/1509727904999674006/malvinas.jpg?ex=6a1a3b2d&is=6a18e9ad&hm=e02670709c460ce9ce6fb09fe05c37b24175516993e5c4114086b2fbc6c9642c&=&format=webp",
-    title: "Baja",
-    description: "**{userTag}** salió de **{server}**.",
     card: {
-      backgroundImage: "https://media.discordapp.net/attachments/1509254186678882305/1509727904999674006/malvinas.jpg?ex=6a1a3b2d&is=6a18e9ad&hm=e02670709c460ce9ce6fb09fe05c37b24175516993e5c4114086b2fbc6c9642c&=&format=webp",
+      // Igual que arriba: usá una URL permanente o dejala vacía para el fondo por defecto.
+      backgroundImage: "",
       serverLabel: "GNA"
     }
   }
