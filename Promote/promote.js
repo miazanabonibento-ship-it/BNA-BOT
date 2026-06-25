@@ -75,9 +75,9 @@ async function execute(interaction, config) {
   const currentIndex = getCurrentRank(member);
   const newIndex     = RANKS.findIndex(r => r.id === rangoId);
   const newRank      = RANKS[newIndex];
-  const oldRankName  = currentIndex >= 0 ? RANKS[currentIndex].name : "Sin rango";
 
   if (accion === "up" && newIndex <= currentIndex) {
+    const oldRankName = currentIndex >= 0 ? RANKS[currentIndex].name : "Sin rango";
     await interaction.reply({
       content: `Para ascender tenés que elegir un rango mayor al actual (${oldRankName}).`,
       flags: 64
@@ -86,6 +86,7 @@ async function execute(interaction, config) {
   }
 
   if (accion === "down" && newIndex >= currentIndex) {
+    const oldRankName = currentIndex >= 0 ? RANKS[currentIndex].name : "Sin rango";
     await interaction.reply({
       content: `Para descender tenés que elegir un rango menor al actual (${oldRankName}).`,
       flags: 64
@@ -100,10 +101,11 @@ async function execute(interaction, config) {
   await member.roles.remove(rolesToRemove, auditReason).catch(() => null);
   await member.roles.add(newRank.id, auditReason).catch(() => null);
 
-  const verbo = accion === "up" ? "ascendido" : "descendido";
+  const verbo          = accion === "up" ? "ascendido" : "descendido";
+  const oldRankMention = currentIndex >= 0 ? `<@&${RANKS[currentIndex].id}>` : "Sin rango";
 
   await interaction.reply({
-    content: `<@${user.id}> ha sido **${verbo}** de **${oldRankName}** a **${newRank.name}**`,
+    content: `<@${user.id}> ha sido **${verbo}** de ${oldRankMention} a <@&${newRank.id}> por <@${interaction.user.id}>`,
   });
 }
 
