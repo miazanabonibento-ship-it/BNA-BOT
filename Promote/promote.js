@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, MessageFlags } = require("discord.js");
+const { SlashCommandBuilder } = require("discord.js");
 
 const RANKS = [
   { name: "Cabo",                 id: "1510552250294997022" },
@@ -48,19 +48,17 @@ const data = new SlashCommandBuilder()
         { name: "Capitán",              value: "1509659763393302575" },
         { name: "Mayor",                value: "1509659763393302576" },
         { name: "Comandante",           value: "1509659763393302577" }
-      ))
-  .addStringOption(option =>
-    option.setName("motivo").setDescription("Motivo del cambio").setRequired(false).setMaxLength(300));
+      ));
 
 async function execute(interaction, config) {
-  const user = interaction.options.getUser("usuario", true);
-  const accion = interaction.options.getString("accion", true);
+  const user    = interaction.options.getUser("usuario", true);
+  const accion  = interaction.options.getString("accion", true);
   const rangoId = interaction.options.getString("rango", true);
-  const motivo = interaction.options.getString("motivo") || "Sin motivo especificado";
 
   // Verificar permisos
   const allowedRoles = config.roles?.managers || [];
-  const hasPermission = interaction.member.permissions.has("Administrator") ||
+  const hasPermission =
+    interaction.member.permissions.has("Administrator") ||
     allowedRoles.some(id => interaction.member.roles.cache.has(id));
 
   if (!hasPermission) {
@@ -75,9 +73,9 @@ async function execute(interaction, config) {
   }
 
   const currentIndex = getCurrentRank(member);
-  const newIndex = RANKS.findIndex(r => r.id === rangoId);
-  const newRank = RANKS[newIndex];
-  const oldRankName = currentIndex >= 0 ? RANKS[currentIndex].name : "Sin rango";
+  const newIndex     = RANKS.findIndex(r => r.id === rangoId);
+  const newRank      = RANKS[newIndex];
+  const oldRankName  = currentIndex >= 0 ? RANKS[currentIndex].name : "Sin rango";
 
   if (accion === "up" && newIndex <= currentIndex) {
     await interaction.reply({
@@ -95,25 +93,17 @@ async function execute(interaction, config) {
     return;
   }
 
+  // Quitar todos los rangos actuales y asignar el nuevo
   const rolesToRemove = member.roles.cache.filter(r => RANK_IDS.includes(r.id));
-  await member.roles.remove(rolesToRemove, `${accion === "up" ? "Ascenso" : "Descenso"} por ${interaction.user.tag}`).catch(() => null);
-  await member.roles.add(newRank.id, `${accion === "up" ? "Ascenso" : "Descenso"} por ${interaction.user.tag}`).catch(() => null);
+  const auditReason   = `${accion === "up" ? "Ascenso" : "Descenso"} por ${interaction.user.tag}`;
 
-  const accionTexto = accion === "up" ? "⬆️ Ascendido" : "⬇️ Descendido";
+  await member.roles.remove(rolesToRemove, auditReason).catch(() => null);
+  await member.roles.add(newRank.id, auditReason).catch(() => null);
+
+  const verbo = accion === "up" ? "ascendido" : "descendido";
 
   await interaction.reply({
-    embeds: [{
-      title: accionTexto,
-      color: accion === "up" ? 0x27ae60 : 0xeb5757,
-      fields: [
-        { name: "Miembro",        value: `<@${user.id}>`,  inline: true },
-        { name: "Rango anterior", value: oldRankName,       inline: true },
-        { name: "Rango nuevo",    value: newRank.name,      inline: true },
-        { name: "Motivo",         value: motivo },
-        { name: "Modificado por", value: `<@${interaction.user.id}>` }
-      ],
-      timestamp: new Date().toISOString()
-    }]
+    content: `<@${user.id}> ha sido **${verbo}** de **${oldRankName}** a **${newRank.name}**`,
   });
 }
 
