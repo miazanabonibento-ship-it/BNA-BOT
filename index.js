@@ -1,5 +1,4 @@
 require("dotenv").config();
-const promoteCommand = require("./Promote/promote");
 
 const {
   Client,
@@ -13,14 +12,16 @@ const config = require("./config");
 const { getFriendlyErrorMessage } = require("./utils/discord");
 
 const announcementCommand = require("./General Messages/Announcement");
-const blacklistCommand = require("./Blacklist/Blacklist");
-const nicknameCommand = require("./Nicknames/Nickname");
-const recognitionCommand = require("./Recognition/Recognition");
-const strikeCommand = require("./Strikes/Strike");
-const ticketCommand = require("./Tickets/Ticket");
-const welcomeEvent = require("./Welcome - Goodbye/Welcome");
-const goodbyeEvent = require("./Welcome - Goodbye/GoodBye");
-const testCardCommands = require("./Welcome - Goodbye/TestCards");
+const blacklistCommand    = require("./Blacklist/Blacklist");
+const nicknameCommand     = require("./Nicknames/Nickname");
+const recognitionCommand  = require("./Recognition/Recognition");
+const strikeCommand       = require("./Strikes/Strike");
+const ticketCommand       = require("./Tickets/Ticket");
+const promoteCommand      = require("./Promote/promote");
+const clearCommand        = require("./Clear/clear");
+const welcomeEvent        = require("./Welcome - Goodbye/Welcome");
+const goodbyeEvent        = require("./Welcome - Goodbye/GoodBye");
+const testCardCommands    = require("./Welcome - Goodbye/TestCards");
 
 if (!process.env.DISCORD_TOKEN) {
   throw new Error("Falta DISCORD_TOKEN en el archivo .env.");
@@ -47,7 +48,7 @@ const commands = [
   strikeCommand,
   ticketCommand,
   promoteCommand,
-  // Los comandos de prueba solo se cargan fuera de producción
+  clearCommand,
   ...testCardCommands,
 ];
 
@@ -56,13 +57,11 @@ for (const command of commands) {
 }
 
 // --- Registro de handlers de interacciones personalizadas ---
-// Cada módulo puede exponer `buttonHandlers` y `modalHandlers`:
-// un objeto { [customIdPrefix]: handlerFn(interaction, config) }
 
 const interactionModules = [ticketCommand, nicknameCommand];
 
 const buttonHandlers = new Map();
-const modalHandlers = new Map();
+const modalHandlers  = new Map();
 
 for (const mod of interactionModules) {
   if (mod.buttonHandlers) {
@@ -124,13 +123,6 @@ client.on(goodbyeEvent.name, (member) => {
 
 // --- Helpers ---
 
-/**
- * Busca un handler cuya clave sea prefijo del customId recibido.
- * Permite tanto matches exactos como "ticket:" → "ticket:solicitar-baja".
- * @param {Map<string, Function>} handlers
- * @param {string} customId
- * @returns {Function | undefined}
- */
 function resolveHandler(handlers, customId) {
   for (const [prefix, handler] of handlers) {
     if (customId === prefix || customId.startsWith(prefix)) {
