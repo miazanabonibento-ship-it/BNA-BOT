@@ -14,12 +14,14 @@ require("dotenv").config();
 const { REST, Routes } = require("discord.js");
 
 const announcementCommand = require("./General Messages/Announcement");
-const blacklistCommand = require("./Blacklist/Blacklist");
-const nicknameCommand = require("./Nicknames/Nickname");
-const recognitionCommand = require("./Recognition/Recognition");
-const strikeCommand = require("./Strikes/Strike");
-const ticketCommand = require("./Tickets/Ticket");
-const testCardCommands = require("./Welcome - Goodbye/TestCards");
+const blacklistCommand    = require("./Blacklist/Blacklist");
+const nicknameCommand     = require("./Nicknames/Nickname");
+const recognitionCommand  = require("./Recognition/Recognition");
+const strikeCommand       = require("./Strikes/Strike");
+const ticketCommand       = require("./Tickets/Ticket");
+const promoteCommand      = require("./Promote/promote");
+const clearCommand        = require("./Clear/clear");
+const testCardCommands    = require("./Welcome - Goodbye/TestCards");
 
 const { DISCORD_TOKEN, CLIENT_ID, GUILD_ID } = process.env;
 
@@ -35,6 +37,8 @@ const allCommands = [
   recognitionCommand,
   strikeCommand,
   ticketCommand,
+  promoteCommand,
+  clearCommand,
   ...testCardCommands,
 ];
 
