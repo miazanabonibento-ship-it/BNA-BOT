@@ -145,6 +145,21 @@ async function replyWithError(interaction, message) {
   }
 }
 
+// --- Servidor HTTP falso (para que Render detecte un puerto abierto) ---
+
+const http = require("http");
+
+http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Bot activo ✅");
+}).listen(process.env.PORT || 3000, () => {
+  console.log("🌐 Servidor HTTP iniciado para mantener el servicio activo en Render.");
+});
+
+// --- Login ---
+
+client.login(process.env.DISCORD_TOKEN);
+
 // --- Login ---
 
 client.login(process.env.DISCORD_TOKEN);
